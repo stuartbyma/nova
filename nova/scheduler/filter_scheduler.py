@@ -30,6 +30,7 @@ from nova.openstack.common.notifier import api as notifier
 from nova.scheduler import driver
 from nova.scheduler import least_cost
 from nova.scheduler import scheduler_options
+from nova.scheduler.plugins import janus_plugin
 
 
 FLAGS = flags.FLAGS
@@ -270,11 +271,26 @@ class FilterScheduler(driver.Scheduler):
         # host, we virtually consume resources on it so subsequent
         # selections can adjust accordingly.
 
+        # -------------------------------------------------------------------------------
+        # @author Eliot J. Kang <eliot@savinetwork.ca>
+        # Get hosts based on plugins
+        # plugined_hosts = ['node']
+        sch_metric = 'temperature'
+        _scheduler_hints = filter_properties.get('scheduler_hints', [])
+        LOG.debug(_("sch_metric: %s") % sch_metric)
+        if _scheduler_hints:
+            sch_metric = _scheduler_hints.get('sch_metric', [])
+            LOG.debug(_("sch_metric: %s") % sch_metric)
+
+        plugined_nodes = self.host_manager.get_plugined_nodes(elevated, topic, 
+            janus_plugin.JanusPlugin(), sch_metric)
+        # -------------------------------------------------------------------------------
+ 
         # unfiltered_hosts_dict is {host : ZoneManager.HostInfo()}
 
         LOG.debug(_("filter_props in _schedule %(filter_properties)s") % locals())
         unfiltered_hosts_dict = self.host_manager.get_all_host_states(
-                elevated, topic)
+                elevated, topic, plugined_nodes)
         LOG.debug(_("unfiltered host dict is %(unfiltered_hosts_dict)s") % locals())
 
         # Note: remember, we are using an iterator here. So only

@@ -162,6 +162,12 @@ class ComputeNode(BASE, NovaBase):
     cpu_info = Column(Text, nullable=True)
     disk_available_least = Column(Integer)
 
+    # Note(eliot): M&M (Monitoring & Measurement) values for filtering
+    #
+    # Temperature: temperature list for CPU cores or any devices, ignore the default value
+    #             {"CPU": {"Core1": 50.0, "Core2", 50.2}}
+    # Change(eliot): float value as an average of all cores
+    temperature = Column(Float, nullable=True)
 
 class ComputeNodeStat(BASE, NovaBase):
     """Stats related to the current workload of a compute host that are

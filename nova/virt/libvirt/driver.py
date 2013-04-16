@@ -49,6 +49,7 @@ import shutil
 import sys
 import tempfile
 import uuid
+import sensors
 
 from eventlet import greenthread
 from eventlet import tpool
@@ -2165,6 +2166,58 @@ class LibvirtDriver(driver.ComputeDriver):
         # data format needs to be standardized across drivers
         return jsonutils.dumps(cpu_info)
 
+    def get_temperature (self):
+        """Get temperature information.
+
+        return a temperature of physical id 0 of coretemp module
+
+        :return: see above description
+        @author Eliot J. Kang <eliot@savinetwork.ca>
+
+        """
+
+        sensors.init()
+        temperature = 0.0
+        try :
+            for chip in sensors.iter_detected_chips():
+                if chip.adapter_name == 'ISA adapter':
+                    for feature in chip:
+                        if feature.label.startswith('Physical'):
+                            temperature = feature.get_value()
+                            break                   
+        finally :
+            sensors.cleanup()
+        return jsonutils.dumps(temperature)
+
+    def get_temperature_json (self):
+        """Get temperature information.
+
+        Obtains temperature from sensors
+        and returns as a json string.
+
+        :return: see above description
+        @author Eliot J. Kang <eliot@savinetwork.ca>
+
+        """
+
+        sensors.init()
+        temperature = []
+        try :
+            for chip in sensors.iter_detected_chips():
+                chip_info = dict ()
+                chip_info[ 'adapter' ] = chip.adapter_name
+                chip_info[ 'chip' ] = str (chip)
+                feature_info = dict ()
+                # print '%s at %s' % (chip, chip.adapter_name)
+                for feature in chip:
+                    feature_info[feature.label] = feature.get_value()
+                    # print '  %s: %.2f' % (feature.label, feature.get_value())
+                chip_info[ 'feature' ] = feature_info
+                temperature.append(chip_info)
+        finally :
+            sensors.cleanup()
+        return jsonutils.dumps(temperature)
+
     def block_stats(self, instance_name, disk):
         """
         Note that this function takes an instance name.
@@ -2217,7 +2270,8 @@ class LibvirtDriver(driver.ComputeDriver):
                'hypervisor_version': self.get_hypervisor_version(),
                'hypervisor_hostname': self.get_hypervisor_hostname(),
                'cpu_info': self.get_cpu_info(),
-               'disk_available_least': self.get_disk_available_least()}
+               'disk_available_least': self.get_disk_available_least(),
+               'temperature': self.get_temperature()}
         return dic
 
     def check_can_live_migrate_destination(self, ctxt, instance_ref,
@@ -3037,6 +3091,7 @@ class HostState(object):
         data["vcpus"] = self.connection.get_vcpu_total()
         data["vcpus_used"] = self.connection.get_vcpu_used()
         data["cpu_info"] = jsonutils.loads(self.connection.get_cpu_info())
+        data["temperature"] = jsonutils.loads(self.connection.get_temperature())
         data["disk_total"] = self.connection.get_local_gb_total()
         data["disk_used"] = self.connection.get_local_gb_used()
         data["disk_available"] = data["disk_total"] - data["disk_used"]
