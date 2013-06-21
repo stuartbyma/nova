@@ -44,7 +44,7 @@ class JanusPlugin(plugins.BaseHostPlugin):
         selectedHosts = hosts
         data = {'metric': metric, 'hosts': hosts}
         try:
-            selectedHosts = self._client.novasch.select_hosts(metric, hosts)
+            selectedHosts = self._client.novasch.select_hosts(metric, hosts)['filter']
             # return hosts from Janus
             LOG.debug(_("receive results from Janus: %s"), selectedHosts)
         except:
