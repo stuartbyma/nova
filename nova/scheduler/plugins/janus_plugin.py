@@ -17,7 +17,8 @@ from janusclient import client as jclient
 
 janus_plugin_opts = [
     cfg.StrOpt('janus_host',
-               default='http://10.10.20.10',
+               #default='http://10.10.20.10',
+               default='http://10.20.32.10',
                help='SDI manager host name'),
     cfg.StrOpt('janus_port',
                default='9091',
